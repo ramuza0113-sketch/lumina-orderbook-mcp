@@ -138,6 +138,6 @@ def test_live_terminal_http_server() -> None:
     info = launch_live_terminal(symbol="BTC-USD", open_browser=False)
     assert info["status"] == "LIVE_TERMINAL_RUNNING"
     html = urllib.request.urlopen(info["terminal_url"], timeout=3).read().decode("utf-8")
-    assert "LUMINA ORDERBOOK & QUANT RISK TERMINAL" in html
+    assert "LUMINA ORDERBOOK" in html and "lightweight-charts" in html
 
 
