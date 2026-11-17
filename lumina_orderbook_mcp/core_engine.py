@@ -303,6 +303,36 @@ def analyze_l2_book_arrays(
             ),
         }
 
+    # Build Top-25 Price Ladder + Cumulative Notional Depth for DOM & Depth Chart rendering
+    ladder_depth = min(25, len(clean_bids), len(clean_asks))
+    bid_ladder: list[dict[str, float]] = []
+    cum_bid_usd = 0.0
+    for p, q in clean_bids[:ladder_depth]:
+        usd = p * q
+        cum_bid_usd += usd
+        bid_ladder.append(
+            {
+                "price": _clean_float(p, digits),
+                "size": _clean_float(q, 6),
+                "notional_usd": _clean_float(usd, 2),
+                "cum_usd": _clean_float(cum_bid_usd, 2),
+            }
+        )
+
+    ask_ladder: list[dict[str, float]] = []
+    cum_ask_usd = 0.0
+    for p, q in clean_asks[:ladder_depth]:
+        usd = p * q
+        cum_ask_usd += usd
+        ask_ladder.append(
+            {
+                "price": _clean_float(p, digits),
+                "size": _clean_float(q, 6),
+                "notional_usd": _clean_float(usd, 2),
+                "cum_usd": _clean_float(cum_ask_usd, 2),
+            }
+        )
+
     return {
         "levels_analyzed": {"bids": len(clean_bids), "asks": len(clean_asks)},
         "touch": {
@@ -326,6 +356,10 @@ def analyze_l2_book_arrays(
         "liquidity_walls": {
             "largest_bid_support_walls": bid_walls,
             "largest_ask_resistance_walls": ask_walls,
+        },
+        "ladder_levels": {
+            "bids": bid_ladder,
+            "asks": ask_ladder,
         },
         "recent_tape_flow": tape_summary,
     }
@@ -520,6 +554,18 @@ def _fetch_equity_intraday_vap_profile(yf_symbol: str, bins: int = 24) -> dict[s
     below_top = sorted(below_nodes, key=lambda x: x[1], reverse=True)[:3]
     above_top = sorted(above_nodes, key=lambda x: x[1], reverse=True)[:3]
 
+    max_bin_vol = max(float(np.max(hist_vol)), 1e-9)
+    vap_histogram = [
+        {
+            "price": _clean_float(float(centers[i]), digits),
+            "volume": _clean_float(float(hist_vol[i]), 0),
+            "pct_of_max": _clean_float(float(hist_vol[i]) / max_bin_vol * 100.0, 1),
+            "is_poc": bool(i == poc_idx),
+            "in_value_area": bool(lo_i <= i <= hi_i),
+        }
+        for i in range(bins - 1, -1, -1)
+    ]
+
     moomoo_detected = check_tcp_port("127.0.0.1", 11111)
 
     return {
@@ -556,6 +602,7 @@ def _fetch_equity_intraday_vap_profile(yf_symbol: str, bins: int = 24) -> dict[s
             "support_nodes_below_price": [{"price": _clean_float(p, digits), "volume": _clean_float(v, 0)} for p, v in below_top],
             "resistance_nodes_above_price": [{"price": _clean_float(p, digits), "volume": _clean_float(v, 0)} for p, v in above_top],
         },
+        "vap_histogram": vap_histogram,
         "nasdaq_totalview_60level_l2_bridge": {
             "local_moomoo_opend_port_11111": "DETECTED_ONLINE" if moomoo_detected else "NOT_DETECTED",
             "upgrade_note": (

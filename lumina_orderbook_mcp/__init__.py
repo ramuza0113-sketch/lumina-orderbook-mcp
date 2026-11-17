@@ -1,6 +1,6 @@
 """Lumina OrderBook & Microstructure MCP Server."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .core_engine import (
     analyze_closed_bar_quant_packet,

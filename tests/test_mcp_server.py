@@ -121,6 +121,7 @@ def test_stdio_jsonrpc_wire_handshake() -> None:
                     "get_live_l2_orderbook",
                     "get_ai_quant_candle_packet",
                     "scan_market_liquidity_anomalies",
+                    "open_live_quant_terminal",
                     "check_pro_institutional_bridge",
                 }.issubset(names)
                 call_resp = await session.call_tool("check_pro_institutional_bridge", {})
@@ -128,4 +129,15 @@ def test_stdio_jsonrpc_wire_handshake() -> None:
                 assert payload["edition"].startswith("Open-Source")
 
     asyncio.run(_wire_check())
+
+
+def test_live_terminal_http_server() -> None:
+    import urllib.request
+    from lumina_orderbook_mcp.dashboard import launch_live_terminal
+
+    info = launch_live_terminal(symbol="BTC-USD", open_browser=False)
+    assert info["status"] == "LIVE_TERMINAL_RUNNING"
+    html = urllib.request.urlopen(info["terminal_url"], timeout=3).read().decode("utf-8")
+    assert "LUMINA ORDERBOOK & QUANT RISK TERMINAL" in html
+
 

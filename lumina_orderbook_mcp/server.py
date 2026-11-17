@@ -26,6 +26,7 @@ from .core_engine import (
     fetch_live_orderbook_or_vap,
     scan_multi_asset_anomalies,
 )
+from .dashboard import launch_live_terminal, run_standalone_dashboard_blocking
 
 mcp = _CompatMCPServer(
     "lumina-orderbook-mcp",
@@ -102,6 +103,35 @@ def scan_market_liquidity_anomalies(
 
 
 @mcp.tool()
+def open_live_quant_terminal(
+    symbol: str = "BTC-USD",
+    watchlist: str = "BTC-USD,ETH-USD,SOL-USD,NVDA,TSLA,XAUUSD",
+    timeframe: str = "1h",
+) -> str:
+    """
+    Launch and open the interactive dark-mode Lumina Live OrderBook & Quant Risk Web Terminal
+    in the user's browser (`http://127.0.0.1:8765`).
+
+    Displays 3 real-time visual panels simultaneously:
+      1. Multi-Asset OFI & Volume Imbalance Ranking Radar (clickable watchlist)
+      2. Live auto-ticking 60-level L2 Order Book DOM Ladder + Cumulative Depth Chart (Crypto)
+         or 24-bin Volume-at-Price POC/VAH/VAL Histogram (Stocks / Gold / FX)
+      3. Closed-Bar Trend Stack, Intraday ADR15 Fuel Tank Gauge, and 1.5R / 3.0R Long & Short Blueprints.
+    Call this tool whenever the user asks to visually see the order book, chart, ranking board, or terminal UI.
+    """
+    try:
+        info = launch_live_terminal(
+            symbol=symbol,
+            watchlist=watchlist,
+            timeframe=timeframe,
+            open_browser=True,
+        )
+        return _to_json_str(info)
+    except Exception as exc:
+        return _to_json_str({"error": str(exc), "symbol": symbol})
+
+
+@mcp.tool()
 def check_pro_institutional_bridge() -> str:
     """
     Check localhost (127.0.0.1) readiness for institutional Level-2 / execution bridges
@@ -161,13 +191,20 @@ def install_claude_desktop_config() -> list[str]:
 
 
 def main() -> None:
-    """CLI entry point for `lumina-orderbook-mcp` (stdio transport or `--install-claude`)."""
+    """CLI entry point for `lumina-orderbook-mcp` (`stdio`, `--install-claude`, or `--dashboard`)."""
     if "--install-claude" in sys.argv:
         paths = install_claude_desktop_config()
         print("Successfully registered `lumina-orderbook` in Claude Desktop:")
         for p in paths:
             print(f"  -> {p}")
         print("Please fully quit Claude Desktop (File -> Quit / Ctrl+Q) and reopen it.")
+        return
+    if "--dashboard" in sys.argv:
+        sym = "BTC-USD"
+        idx = sys.argv.index("--dashboard")
+        if idx + 1 < len(sys.argv) and not sys.argv[idx + 1].startswith("-"):
+            sym = sys.argv[idx + 1]
+        run_standalone_dashboard_blocking(symbol=sym)
         return
     mcp.run(transport="stdio")
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lumina-orderbook-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Zero-API-key Model Context Protocol (MCP) server for real-time 60-level L2 Order Book Imbalance (OFI), Liquidity Walls, Closed-Bar Quantitative Candles, Schmitt-Trigger Factor Ontology, and Deterministic ATR Risk Maps for Claude Code, Cursor, and AI Trading Agents."
 readme = "README.md"
 license = { text = "MIT" }

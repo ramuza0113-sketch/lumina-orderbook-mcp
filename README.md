@@ -80,6 +80,7 @@ python -m lumina_orderbook_mcp.server --install-claude
 | `get_live_l2_orderbook` | **Crypto**: Live 60-level L2 Order Book, Stoikov Micro-Price, Top-10 & Deep-60 OFI, Top-3 USD Bid/Ask Walls, Aggressive Tape Delta.<br>**Stocks/ETFs/FX**: 5m Volume-at-Price (`POC`, `VAH`, `VAL`), Session `VWAP` distance (bps), High-Volume Support/Resistance Nodes. | `BTC-USD`, `ETH-USD`, `SOL-USD`, `NVDA`, `TSLA`, `SPY`, `GLD`, `7203.T`, `XAUUSD` |
 | `get_ai_quant_candle_packet` | **Closed-Bar Only** (anti-repaint) `EMA(20/50/200)`, Daily `SMA200` Stage-2 filter, `RSI(14)`, `RVOL(20)`, Causal `ADR(15)` remaining fuel %, Schmitt-Trigger Ontology tags, and `1.5x ATR` Stop / `1.5R` / `3.0R` Long & Short risk maps + unit sizing per `$100` risk. | `NVDA` (`1h`), `BTC-USD` (`15m`), `7203.T` (`1d`), `USDJPY` (`30m`) |
 | `scan_market_liquidity_anomalies` | Scans up to 10 tickers in parallel/batch and ranks them by absolute microstructure order-flow / institutional volume conviction. | `"BTC-USD,ETH-USD,SOL-USD,NVDA,TSLA,GLD"` |
+| `open_live_quant_terminal` | **Launches a live auto-refreshing dark-mode Bloomberg-style Web Terminal (`http://127.0.0.1:8765`)** showing the 6-ticker Anomaly Radar, Live 60-Level L2 DOM Ladder + SVG Depth Curve (or 24-bin VAP Profile), ADR15 Fuel Tank Gauge, and 1.5R/3.0R Risk Blueprints in English & Japanese! | `symbol="BTC-USD"`, `timeframe="1h"` (or CLI: `lumina-orderbook-mcp --dashboard`) |
 | `check_pro_institutional_bridge` | Localhost (`127.0.0.1`) TCP readiness check for Moomoo OpenD (`:11111` NASDAQ TotalView), IBKR Gateway/TWS (`:4002`/`:7497`), and MT5 Bridge (`:8001`). | *(No arguments needed)* |
 
 ### 💬 Prompts to Try Right Away
@@ -160,6 +161,7 @@ https://github.com/ramuza0113-sketch/lumina-orderbook-mcp のMCPサーバーを�
 ```
 
 ### 導入後にそのまま聞ける質問例
+- **🔥 新機能（ビジュアル板＆ランキング画面を起動）**: `Luminaのライブ板＆リスク画面をブラウザで開いて`（または単体起動コマンド: `lumina-orderbook-mcp --dashboard`）
 - `BTC-USD と ETH-USD のリアルタイム60段板を見て、今どこに一番厚い買い壁・売り壁があるか教えて`
 - `NVDA と トヨタ(7203.T) の出来高プロファイル(POC)と1時間足の確定足リスクマップを出して。今日のADR値幅燃料はまだ残ってる？`
 - `BTC-USD, SOL-USD, NVDA, TSLA, GLD を一括スキャンして、今一番板と出来高の偏りが強い銘柄をランキングして`
