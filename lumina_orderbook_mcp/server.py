@@ -47,6 +47,7 @@ def _to_json_str(payload: dict[str, Any]) -> str:
 def get_live_l2_orderbook(symbol: str = "BTC-USD", depth: int = 60) -> str:
     """
     Fetch real-time market microstructure & liquidity walls for Crypto, US/JP Stocks, ETFs, Gold, or FX.
+    [日本語検索キーワード: リアルタイム60段板 / 板情報 / オーダーブック / 買い壁・売り壁 / 歩み値OFI / 出来高プロファイル POC VWAP]
 
     - For Crypto (e.g. 'BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD'):
       Returns live 60-level L2 limit order book (Coinbase -> Kraken -> Hyperliquid automatic fallback),
@@ -68,6 +69,7 @@ def get_live_l2_orderbook(symbol: str = "BTC-USD", depth: int = 60) -> str:
 def get_ai_quant_candle_packet(symbol: str = "NVDA", timeframe: str = "1h") -> str:
     """
     Compute a zero-repaint (closed-bar only) quantitative analysis & deterministic ATR risk packet.
+    [日本語検索キーワード: 確定足リスクマップ / 損切り・利確ライン / ATR / ADR値幅燃料 / EMAトレンド判定]
 
     Supported timeframes: '5m', '15m', '30m', '1h', '1d'.
     Works across US Stocks ('NVDA', 'AAPL'), Japanese Stocks ('7203.T', '8035.T'),
@@ -94,6 +96,7 @@ def scan_market_liquidity_anomalies(
     """
     Scan up to 10 comma-separated tickers simultaneously and rank them by real-time
     L2 order-book pressure or intraday institutional volume imbalance.
+    [日本語検索キーワード: 一括スキャン / 銘柄ランキング / 板・出来高インバランス順位]
     """
     try:
         data = scan_multi_asset_anomalies(symbols_csv=symbols_csv)
@@ -111,13 +114,14 @@ def open_live_quant_terminal(
     """
     Launch and open the interactive dark-mode Lumina Live OrderBook & Quant Risk Web Terminal
     in the user's browser (`http://127.0.0.1:8765`).
+    [日本語検索キーワード: Lumina ライブ板 / 板画面 / オーダーブック画面 / リスク画面 / ターミナル / ランキング画面を開く]
 
     Displays 3 real-time visual panels simultaneously:
       1. Multi-Asset OFI & Volume Imbalance Ranking Radar (clickable watchlist)
       2. Live auto-ticking 60-level L2 Order Book DOM Ladder + Cumulative Depth Chart (Crypto)
          or 24-bin Volume-at-Price POC/VAH/VAL Histogram (Stocks / Gold / FX)
       3. Closed-Bar Trend Stack, Intraday ADR15 Fuel Tank Gauge, and 1.5R / 3.0R Long & Short Blueprints.
-    Call this tool whenever the user asks to visually see the order book, chart, ranking board, or terminal UI.
+    Call this tool whenever the user asks to visually see or open the order book, chart, ranking board, or Lumina terminal UI.
     """
     try:
         info = launch_live_terminal(

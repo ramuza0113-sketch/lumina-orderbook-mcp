@@ -28,10 +28,10 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
-import pandas as pd
+if TYPE_CHECKING:
+    import pandas as pd
 
 SPONSOR_URL = "https://github.com/sponsors/ramuza0113-sketch"
 MAIN_FRAMEWORK_URL = "https://github.com/ramuza0113-sketch/lumina-ai-hedge-fund"
@@ -452,6 +452,7 @@ def _fetch_crypto_l2_multi_exchange(base: str, depth: int = 60) -> dict[str, Any
 
 def _download_yf_safe(symbol: str, period: str, interval: str) -> pd.DataFrame:
     """Download OHLCV via yfinance while strictly routing any third-party stdout noise to stderr."""
+    import pandas as pd
     import yfinance as yf
 
     with contextlib.redirect_stdout(sys.stderr):
@@ -468,6 +469,9 @@ def _fetch_equity_intraday_vap_profile(yf_symbol: str, bins: int = 24) -> dict[s
     Zero-API-key intraday Volume-at-Price (VAP) & Liquidity Profile for Equities / ETFs / FX.
     Computes Point of Control (POC), 70% Value Area (VAH / VAL), Intraday VWAP, and Directional Volume Imbalance.
     """
+    import numpy as np
+    import pandas as pd
+
     df = _download_yf_safe(yf_symbol, period="5d", interval="5m")
     last_close = float(df["Close"].iloc[-1])
     digits = _price_digits(last_close)
@@ -632,6 +636,9 @@ def analyze_closed_bar_quant_packet(
     Pure deterministic Closed-Bar Quantitative & Risk Packet calculator.
     Eliminates mid-candle repainting and LLM arithmetic drift.
     """
+    import numpy as np
+    import pandas as pd
+
     if len(df) < 35:
         raise ValueError(f"Insufficient historical bars ({len(df)}) for {symbol} ({timeframe}).")
 
