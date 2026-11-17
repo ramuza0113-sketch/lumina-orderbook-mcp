@@ -9,6 +9,10 @@ with ZERO API keys required.
 from __future__ import annotations
 
 import json
+import os
+import pathlib
+import shutil
+import sys
 from typing import Any
 
 try:
@@ -107,8 +111,64 @@ def check_pro_institutional_bridge() -> str:
     return _to_json_str(check_local_institutional_ports())
 
 
+def install_claude_desktop_config() -> list[str]:
+    """
+    Auto-detect and safely register `lumina-orderbook` in Claude Desktop config files
+    across Windows (both Standard `%APPDATA%\\Claude` and Microsoft Store `Claude-Data`),
+    macOS (`~/Library/Application Support/Claude`), and Linux (`~/.config/Claude`).
+    """
+    targets: list[pathlib.Path] = []
+    if sys.platform == "win32":
+        local_app = os.environ.get("LOCALAPPDATA", "")
+        roaming_app = os.environ.get("APPDATA", "")
+        if local_app:
+            claude_data = pathlib.Path(local_app) / "Claude-Data"
+            if claude_data.exists():
+                targets.extend(claude_data.glob("claude_*/claude_desktop_config.json"))
+            msix_pkgs = pathlib.Path(local_app) / "Packages"
+            if msix_pkgs.exists():
+                for pkg in msix_pkgs.glob("Claude_*"):
+                    cand = pkg / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json"
+                    if cand.exists():
+                        targets.append(cand)
+        if roaming_app and not targets:
+            targets.append(pathlib.Path(roaming_app) / "Claude" / "claude_desktop_config.json")
+    elif sys.platform == "darwin":
+        targets.append(pathlib.Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json")
+    else:
+        targets.append(pathlib.Path.home() / ".config" / "Claude" / "claude_desktop_config.json")
+
+    updated: list[str] = []
+    for cfg in targets:
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        if cfg.exists():
+            shutil.copy2(cfg, cfg.with_suffix(".json.bak"))
+            try:
+                content = cfg.read_text(encoding="utf-8").strip()
+                data = json.loads(content) if content else {}
+            except Exception:
+                data = {}
+        else:
+            data = {}
+
+        data.setdefault("mcpServers", {})["lumina-orderbook"] = {
+            "command": sys.executable,
+            "args": ["-m", "lumina_orderbook_mcp.server"],
+        }
+        cfg.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        updated.append(str(cfg))
+    return updated
+
+
 def main() -> None:
-    """CLI entry point for `lumina-orderbook-mcp` (stdio transport)."""
+    """CLI entry point for `lumina-orderbook-mcp` (stdio transport or `--install-claude`)."""
+    if "--install-claude" in sys.argv:
+        paths = install_claude_desktop_config()
+        print("Successfully registered `lumina-orderbook` in Claude Desktop:")
+        for p in paths:
+            print(f"  -> {p}")
+        print("Please fully quit Claude Desktop (File -> Quit / Ctrl+Q) and reopen it.")
+        return
     mcp.run(transport="stdio")
 
 

@@ -64,11 +64,12 @@ claude mcp add lumina-orderbook -- uvx --from git+https://github.com/ramuza0113-
 }
 ```
 
-#### Option C: Standard `pip` Install (Without `uv`)
+#### Option C: Standard `pip` + Automatic Claude Desktop Installer (Windows Store / MSIX & macOS supported!)
 ```bash
 pip install git+https://github.com/ramuza0113-sketch/lumina-orderbook-mcp.git
+python -m lumina_orderbook_mcp.server --install-claude
 ```
-Then set `"command": "lumina-orderbook-mcp"` and `"args": []` in your MCP client config.
+*(Automatically detects both standard `%APPDATA%\Claude` and Microsoft Store `%LOCALAPPDATA%\Claude-Data` configs, safely backs up existing preferences, and registers `lumina-orderbook`! Then fully quit Claude Desktop via `Ctrl+Q` and reopen.)*
 
 ---
 
