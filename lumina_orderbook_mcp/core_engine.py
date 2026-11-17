@@ -657,9 +657,12 @@ def analyze_closed_bar_quant_packet(
     l_now = float(low.iloc[-1])
     digits = _price_digits(c_now)
 
-    ema20 = float(close.ewm(span=20, adjust=False).mean().iloc[-1])
-    ema50 = float(close.ewm(span=50, adjust=False).mean().iloc[-1])
-    ema200 = float(close.ewm(span=200, adjust=False).mean().iloc[-1])
+    ema20_s = close.ewm(span=20, adjust=False).mean()
+    ema50_s = close.ewm(span=50, adjust=False).mean()
+    ema200_s = close.ewm(span=200, adjust=False).mean()
+    ema20 = float(ema20_s.iloc[-1])
+    ema50 = float(ema50_s.iloc[-1])
+    ema200 = float(ema200_s.iloc[-1])
 
     if c_now > ema20 > ema50 > ema200:
         ema_state = "BULLISH_TREND_STACK"
@@ -688,9 +691,15 @@ def analyze_closed_bar_quant_packet(
     atr14 = float(tr.ewm(alpha=1.0 / 14.0, adjust=False).mean().iloc[-1])
     atr_pct = (atr14 / c_now * 100.0) if c_now > 0 else 0.0
 
-    # Relative Volume (RVOL vs trailing 20 closed bars excluding current)
-    vol_baseline = float(vol.iloc[-21:-1].mean()) if len(vol) >= 21 else float(vol.mean())
-    rvol = (float(vol.iloc[-1]) / vol_baseline) if vol_baseline > 0 else 1.0
+    # Relative Volume (RVOL vs trailing 20 closed bars excluding current; handle Yahoo 0-vol crypto bars)
+    nonzero_vol = vol[vol > 0]
+    if len(nonzero_vol) >= 5:
+        curr_v = float(vol.iloc[-1]) if float(vol.iloc[-1]) > 0 else float(nonzero_vol.iloc[-1])
+        base_slice = nonzero_vol.iloc[-21:-1] if len(nonzero_vol) >= 21 else nonzero_vol
+        vol_baseline = float(base_slice.mean())
+        rvol = (curr_v / vol_baseline) if vol_baseline > 0 else 1.0
+    else:
+        rvol = 1.0
 
     # Causal 15-day ADR Fuel & Weinstein 200-Day SMA Stage-2 Check (if daily_df supplied)
     stage2_status = "UNKNOWN"
@@ -796,32 +805,79 @@ def analyze_closed_bar_quant_packet(
     }
 
 
-def build_live_quant_candle_packet(symbol: str = "NVDA", timeframe: str = "1h") -> dict[str, Any]:
+def build_live_quant_candle_packet(
+    symbol: str = "NVDA",
+    timeframe: str = "1h",
+    include_chart_bars: bool = False,
+) -> dict[str, Any]:
     """Fetch bars for `symbol` and compute deterministic closed-bar quant & risk packet."""
+    import pandas as pd
+
     info = normalize_symbol_info(symbol)
     yf_sym = info["yf_symbol"]
 
     tf_map = {
-        "5m": ("10d", "5m"),
-        "15m": ("30d", "15m"),
-        "30m": ("60d", "30m"),
-        "1h": ("120d", "60m"),
-        "60m": ("120d", "60m"),
+        "5m": ("5d", "5m"),
+        "15m": ("15d", "15m"),
+        "30m": ("30d", "30m"),
+        "1h": ("60d", "60m"),
+        "60m": ("60d", "60m"),
         "1d": ("2y", "1d"),
     }
     tf_key = timeframe.strip().lower()
-    period, interval = tf_map.get(tf_key, ("120d", "60m"))
+    period, interval = tf_map.get(tf_key, ("60d", "60m"))
 
     df = _download_yf_safe(yf_sym, period=period, interval=interval)
     daily_df = df if interval == "1d" else _download_yf_safe(yf_sym, period="1y", interval="1d")
 
-    return analyze_closed_bar_quant_packet(
+    pkt = analyze_closed_bar_quant_packet(
         df=df,
         symbol=yf_sym,
         timeframe=tf_key if tf_key in tf_map else "1h",
         daily_df=daily_df,
         drop_unclosed_last_bar=True,
     )
+
+    if include_chart_bars:
+        full_closed = df.iloc[:-1].copy() if len(df) > 36 else df.copy()
+        c_full = full_closed["Close"].astype(float)
+        e20_full = c_full.ewm(span=20, adjust=False).mean()
+        e50_full = c_full.ewm(span=50, adjust=False).mean()
+        e200_full = c_full.ewm(span=200, adjust=False).mean()
+        working = full_closed.tail(150)
+        e20 = e20_full.loc[working.index]
+        e50 = e50_full.loc[working.index]
+        e200 = e200_full.loc[working.index]
+        digits = _price_digits(float(c_full.iloc[-1]))
+
+        bars_out: list[dict[str, Any]] = []
+        seen_ts: set[int] = set()
+        for ts, row in working.iterrows():
+            ts_dt = pd.Timestamp(ts)
+            if ts_dt.tzinfo is None:
+                unix_s = int(ts_dt.tz_localize("UTC").timestamp())
+            else:
+                unix_s = int(ts_dt.tz_convert("UTC").timestamp())
+            if unix_s in seen_ts:
+                continue
+            seen_ts.add(unix_s)
+            bars_out.append(
+                {
+                    "time": unix_s,
+                    "open": _clean_float(row["Open"], digits),
+                    "high": _clean_float(row["High"], digits),
+                    "low": _clean_float(row["Low"], digits),
+                    "close": _clean_float(row["Close"], digits),
+                    "volume": _clean_float(row["Volume"], 2),
+                    "ema20": _clean_float(e20.loc[ts], digits),
+                    "ema50": _clean_float(e50.loc[ts], digits),
+                    "ema200": _clean_float(e200.loc[ts], digits),
+                }
+            )
+        bars_out.sort(key=lambda x: x["time"])
+        pkt["chart_bars"] = bars_out
+
+    return pkt
 
 
 def scan_multi_asset_anomalies(symbols_csv: str = "BTC-USD,ETH-USD,SOL-USD,NVDA,TSLA,GLD") -> dict[str, Any]:

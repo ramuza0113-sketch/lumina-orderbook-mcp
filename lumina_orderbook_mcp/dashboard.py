@@ -1,13 +1,14 @@
 """
-Lumina Live Microstructure, Order Book & Deterministic Risk Web Terminal.
+Lumina Live Microstructure, Interactive Candlestick Chart, Order Book & Risk Terminal (v0.3.0).
 
-Zero external frontend dependencies: runs on Python's built-in `ThreadingHTTPServer`
-(`127.0.0.1` localhost-only for security) and renders a real-time institutional
-3-panel dark terminal in any browser:
-  1. Multi-Asset Liquidity & OFI Anomaly Radar (Ranked Watchlist)
-  2. Live 60-Level L2 Order Book DOM Ladder + SVG Depth Curve (Crypto)
+Runs on Python's built-in `ThreadingHTTPServer` (`127.0.0.1` localhost-only) and renders
+a Bloomberg / TradingView-grade 4-module dark terminal in any browser:
+  1. Left Panel: Multi-Asset Liquidity & OFI Anomaly Radar (Ranked Watchlist)
+  2. Center-Top Panel: Interactive TradingView `lightweight-charts` Candlestick + Volume +
+     EMA(20/50/200) + Automatic 1.5R / 3.0R / Stop-Loss & Whale Wall Price Lines!
+  3. Center-Bottom Panel: Live 60-Level L2 Order Book DOM Ladder + Cumulative Depth SVG (Crypto)
      OR 24-Bin Volume-at-Price POC/VAH/VAL Histogram (Stocks / Gold / FX)
-  3. Closed-Bar Trend Stack, ADR(15) Fuel Tank Gauge & 1.5R / 3.0R Risk Blueprint
+  4. Right Panel: Closed-Bar Trend Stack, ADR(15) Fuel Tank Gauge & 1.5R / 3.0R Risk Blueprint
 """
 
 from __future__ import annotations
@@ -39,7 +40,8 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Lumina OrderBook & Quant Risk Terminal</title>
+<title>Lumina OrderBook, Chart & Quant Risk Terminal</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root {
     --bg: #060a12;
@@ -54,7 +56,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     --red: #f43f5e;
     --red-bg: rgba(244, 63, 94, 0.16);
     --amber: #f59e0b;
-    --pink: #ec4899;
+    --violet: #a855f7;
   }
   * { box-sizing: border-box; }
   body {
@@ -79,7 +81,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
   }
   .brand {
     display: flex;
@@ -112,7 +114,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   }
   button { cursor: pointer; transition: 0.15s; }
   button:hover { border-color: var(--cyan); }
-  .tf-btn.active {
+  .tf-btn.active, .line-btn.active {
     background: rgba(34, 211, 238, 0.18);
     border-color: var(--cyan);
     color: var(--cyan);
@@ -133,12 +135,18 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   .sponsor-btn:hover { opacity: 0.92; }
   .grid {
     display: grid;
-    grid-template-columns: 330px minmax(400px, 1.25fr) minmax(350px, 1fr);
+    grid-template-columns: 300px minmax(460px, 1.45fr) 355px;
     gap: 12px;
     padding: 12px;
     align-items: start;
   }
-  @media (max-width: 1200px) {
+  .center-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  @media (max-width: 1240px) {
     .grid { grid-template-columns: 1fr; }
   }
   .card {
@@ -148,12 +156,14 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     overflow: hidden;
   }
   .card-hd {
-    padding: 10px 14px;
+    padding: 9px 14px;
     background: rgba(255,255,255,0.02);
     border-bottom: 1px solid var(--border);
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     font-weight: 700;
     font-size: 13px;
   }
@@ -168,7 +178,29 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   .b-bull { background: var(--green-bg); color: #34d399; border: 1px solid rgba(16,185,129,0.35); }
   .b-bear { background: var(--red-bg); color: #fb7185; border: 1px solid rgba(244,63,94,0.35); }
   .b-neut { background: rgba(140,160,194,0.14); color: var(--muted); border: 1px solid rgba(140,160,194,0.3); }
-  .b-warn { background: rgba(245,158,11,0.16); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+
+  /* Chart */
+  #tvChartWrap {
+    position: relative;
+    width: 100%;
+    height: 360px;
+    background: #070c17;
+  }
+  .chart-legend {
+    position: absolute;
+    left: 10px;
+    top: 8px;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11.5px;
+    background: rgba(6, 10, 18, 0.72);
+    padding: 4px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(30,45,71,0.7);
+  }
 
   /* Watchlist Radar */
   .scan-row {
@@ -218,7 +250,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
   .ladder-row {
     position: relative;
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr 1.1fr;
+    grid-template-columns: 1.15fr 0.85fr 1.1fr;
     padding: 3px 8px;
     font-size: 12px;
     border-bottom: 1px solid rgba(255,255,255,0.025);
@@ -316,7 +348,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <header>
   <div class="brand">
     <div class="pulse"></div>
-    <span>🏛️ LUMINA ORDERBOOK & QUANT RISK TERMINAL</span>
+    <span>🏛️ LUMINA ORDERBOOK, CHART & QUANT RISK TERMINAL</span>
     <span class="badge b-neut mono" id="clockUtc">--:--:--</span>
   </div>
   <div class="controls">
@@ -356,13 +388,35 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- CENTER: LIVE 60-LEVEL L2 BOOK OR VAP -->
-  <div class="card">
-    <div class="card-hd">
-      <span id="hdBook">📊 Live 60-Level Order Book & Walls</span>
-      <span class="badge b-neut mono" id="feedBadge">--</span>
+  <!-- CENTER STACK: TOP = CANDLESTICK CHART, BOTTOM = 60-LEVEL L2 BOOK / VAP -->
+  <div class="center-stack">
+    <div class="card">
+      <div class="card-hd">
+        <span id="hdChart">📈 Candlestick Chart + EMA(20/50/200) + Risk Lines</span>
+        <div style="display:flex;gap:4px;">
+          <button class="line-btn active" id="lineAutoBtn" onclick="setOverlaySide('AUTO')">Auto</button>
+          <button class="line-btn" id="lineLongBtn" onclick="setOverlaySide('LONG')">LONG</button>
+          <button class="line-btn" id="lineShortBtn" onclick="setOverlaySide('SHORT')">SHORT</button>
+          <button class="line-btn" id="lineOffBtn" onclick="setOverlaySide('OFF')">Off</button>
+        </div>
+      </div>
+      <div id="tvChartWrap">
+        <div class="chart-legend mono" id="chartLegend">
+          <span style="color:#22d3ee;">● EMA20</span>
+          <span style="color:#f59e0b;">● EMA50</span>
+          <span style="color:#a855f7;">● EMA200</span>
+          <span id="ohlcReadout" style="color:var(--text);"></span>
+        </div>
+      </div>
     </div>
-    <div class="card-bd" id="bookContainer">Loading microstructure...</div>
+
+    <div class="card">
+      <div class="card-hd">
+        <span id="hdBook">📊 Live 60-Level Order Book & Walls</span>
+        <span class="badge b-neut mono" id="feedBadge">--</span>
+      </div>
+      <div class="card-bd" id="bookContainer">Loading microstructure...</div>
+    </div>
   </div>
 
   <!-- RIGHT: CLOSED-BAR QUANT & ATR RISK BLUEPRINT -->
@@ -381,6 +435,18 @@ let currentSym = (params.get("symbol") || "BTC-USD").toUpperCase();
 let currentTf = params.get("timeframe") || "1h";
 let lang = (navigator.language || "").startsWith("ja") ? "ja" : "en";
 let timerId = null;
+let overlayMode = "AUTO"; // AUTO | LONG | SHORT | OFF
+let lastCandlePacket = null;
+let lastOrderBookPacket = null;
+
+// TradingView Lightweight Charts instances
+let tvChart = null;
+let candleSeries = null;
+let volSeries = null;
+let ema20Series = null;
+let ema50Series = null;
+let ema200Series = null;
+let activePriceLines = [];
 
 if (params.get("watchlist")) {
   document.getElementById("watchInput").value = params.get("watchlist");
@@ -418,9 +484,128 @@ function regimeBadgeClass(code) {
   return "b-neut";
 }
 
+function initTvChart() {
+  if (!window.LightweightCharts || tvChart) return;
+  const wrap = document.getElementById("tvChartWrap");
+  tvChart = LightweightCharts.createChart(wrap, {
+    width: wrap.clientWidth,
+    height: 360,
+    layout: {
+      background: { type: "solid", color: "#070c17" },
+      textColor: "#8ca0c2",
+      fontSize: 11,
+    },
+    grid: {
+      vertLines: { color: "rgba(30, 45, 71, 0.45)" },
+      horzLines: { color: "rgba(30, 45, 71, 0.45)" },
+    },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: "#1e2d47" },
+    timeScale: { borderColor: "#1e2d47", timeVisible: true, secondsVisible: false },
+  });
+
+  candleSeries = tvChart.addCandlestickSeries({
+    upColor: "#10b981",
+    downColor: "#f43f5e",
+    borderUpColor: "#10b981",
+    borderDownColor: "#f43f5e",
+    wickUpColor: "#10b981",
+    wickDownColor: "#f43f5e",
+  });
+
+  volSeries = tvChart.addHistogramSeries({
+    priceFormat: { type: "volume" },
+    priceScaleId: "",
+  });
+  volSeries.priceScale().applyOptions({
+    scaleMargins: { top: 0.82, bottom: 0 },
+  });
+
+  ema20Series = tvChart.addLineSeries({ color: "#22d3ee", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ema50Series = tvChart.addLineSeries({ color: "#f59e0b", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  ema200Series = tvChart.addLineSeries({ color: "#a855f7", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+
+  tvChart.subscribeCrosshairMove(param => {
+    const el = document.getElementById("ohlcReadout");
+    if (!param || !param.time || !param.seriesData) {
+      el.textContent = "";
+      return;
+    }
+    const c = param.seriesData.get(candleSeries);
+    if (c) {
+      el.textContent = `O:${c.open} H:${c.high} L:${c.low} C:${c.close}`;
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (tvChart && wrap) {
+      tvChart.applyOptions({ width: wrap.clientWidth });
+    }
+  });
+}
+
+function redrawPriceLines() {
+  if (!candleSeries || !lastCandlePacket) return;
+  activePriceLines.forEach(pl => {
+    try { candleSeries.removePriceLine(pl); } catch (e) {}
+  });
+  activePriceLines = [];
+
+  if (overlayMode === "OFF") return;
+
+  const rm = lastCandlePacket.deterministic_risk_map;
+  const align = lastCandlePacket.trend_and_momentum.ema_alignment;
+  let side = overlayMode;
+  if (side === "AUTO") {
+    side = align === "BEARISH_TREND_STACK" ? "SHORT" : "LONG";
+  }
+
+  const bp = side === "SHORT" ? rm.short_blueprint : rm.long_blueprint;
+  const lines = [
+    { price: bp.target_3_0r_runner, color: "#10b981", lineWidth: 2, lineStyle: 2, title: `${side} 3.0R` },
+    { price: bp.target_1_5r_partial, color: "#34d399", lineWidth: 1, lineStyle: 2, title: `${side} 1.5R` },
+    { price: bp.reference_entry, color: "#22d3ee", lineWidth: 1, lineStyle: 0, title: `Entry` },
+    { price: bp.structural_stop_loss, color: "#f43f5e", lineWidth: 2, lineStyle: 2, title: `${side} SL (1.5ATR)` },
+  ];
+
+  // Also plot POC or Whale Wall if within chart visual vicinity
+  if (lastOrderBookPacket) {
+    if (lastOrderBookPacket.asset_class === "EQUITY_ETF_FX" && lastOrderBookPacket.volume_profile_5d) {
+      lines.push({
+        price: lastOrderBookPacket.volume_profile_5d.point_of_control_poc,
+        color: "#f59e0b",
+        lineWidth: 1,
+        lineStyle: 1,
+        title: "POC Wall",
+      });
+    }
+  }
+
+  lines.forEach(cfg => {
+    activePriceLines.push(candleSeries.createPriceLine({
+      price: cfg.price,
+      color: cfg.color,
+      lineWidth: cfg.lineWidth,
+      lineStyle: cfg.lineStyle,
+      axisLabelVisible: true,
+      title: cfg.title,
+    }));
+  });
+}
+
+function setOverlaySide(mode) {
+  overlayMode = mode;
+  document.getElementById("lineAutoBtn").classList.toggle("active", mode === "AUTO");
+  document.getElementById("lineLongBtn").classList.toggle("active", mode === "LONG");
+  document.getElementById("lineShortBtn").classList.toggle("active", mode === "SHORT");
+  document.getElementById("lineOffBtn").classList.toggle("active", mode === "OFF");
+  redrawPriceLines();
+}
+
 function syncStaticText() {
   document.getElementById("hdRadar").textContent = lang === "ja" ? "📡 一括・板＆出来高インバランス順位" : "📡 Multi-Asset OFI & Volume Radar";
-  document.getElementById("hdBook").textContent = lang === "ja" ? `📊 ${currentSym} リアルタイム板＆売買壁 / 出来高プロファイル` : `📊 ${currentSym} Live Order Book & Liquidity Profile`;
+  document.getElementById("hdChart").textContent = lang === "ja" ? `📈 ${currentSym} (${currentTf}) ローソク足チャート ＆ 自動損切り・利確ライン` : `📈 ${currentSym} (${currentTf}) Candlestick Chart + EMA & Risk Lines`;
+  document.getElementById("hdBook").textContent = lang === "ja" ? `📊 ${currentSym} リアルタイム60段板 / 価格帯別出来高` : `📊 ${currentSym} Live Order Book & Liquidity Profile`;
   document.getElementById("hdRisk").textContent = lang === "ja" ? `🎯 ${currentSym} (${currentTf}) 確定足リスク設計図` : `🎯 ${currentSym} (${currentTf}) Closed-Bar Risk Map`;
   document.getElementById("btnLoad").textContent = lang === "ja" ? "表示" : "Load";
   document.getElementById("btnScan").textContent = lang === "ja" ? "再スキャン" : "Scan";
@@ -457,7 +642,7 @@ function selectSymbol(sym) {
 function setTf(tf) {
   currentTf = tf;
   syncStaticText();
-  loadRiskPacket();
+  loadRiskAndChartPacket(true);
 }
 
 function highlightSelectedRadar() {
@@ -509,14 +694,14 @@ async function loadRadar() {
 
 function buildDepthSvg(bids, asks) {
   if (!bids.length || !asks.length) return "";
-  const W = 460, H = 110;
+  const W = 460, H = 95;
   const bRev = [...bids].reverse();
   const allPrices = [...bRev.map(x => x.price), ...asks.map(x => x.price)];
   const maxCum = Math.max(bids[bids.length - 1].cum_usd, asks[asks.length - 1].cum_usd, 1);
   const minP = Math.min(...allPrices), maxP = Math.max(...allPrices);
   const spanP = Math.max(maxP - minP, 1e-9);
   const pxX = p => ((p - minP) / spanP) * W;
-  const cumY = c => H - (c / maxCum) * (H - 12) - 4;
+  const cumY = c => H - (c / maxCum) * (H - 14) - 3;
 
   const bPts = bRev.map(b => `${pxX(b.price).toFixed(1)},${cumY(b.cum_usd).toFixed(1)}`).join(" ");
   const bArea = `${pxX(bRev[0].price).toFixed(1)},${H} ${bPts} ${pxX(bRev[bRev.length-1].price).toFixed(1)},${H}`;
@@ -525,13 +710,13 @@ function buildDepthSvg(bids, asks) {
   const aArea = `${pxX(asks[0].price).toFixed(1)},${H} ${aPts} ${pxX(asks[asks.length-1].price).toFixed(1)},${H}`;
 
   return `
-    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:110px;background:#080e1a;border:1px solid var(--border);border-radius:7px;margin-bottom:10px;">
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:95px;background:#080e1a;border:1px solid var(--border);border-radius:7px;margin-bottom:10px;">
       <polygon points="${bArea}" fill="rgba(16,185,129,0.22)" />
       <polyline points="${bPts}" fill="none" stroke="#10b981" stroke-width="2" />
       <polygon points="${aArea}" fill="rgba(244,63,94,0.22)" />
       <polyline points="${aPts}" fill="none" stroke="#f43f5e" stroke-width="2" />
-      <text x="8" y="16" fill="#34d399" font-size="10" font-family="monospace">CUM BID DEPTH ($${Math.round(bids[bids.length-1].cum_usd).toLocaleString()})</text>
-      <text x="${W - 8}" y="16" text-anchor="end" fill="#fb7185" font-size="10" font-family="monospace">CUM ASK DEPTH ($${Math.round(asks[asks.length-1].cum_usd).toLocaleString()})</text>
+      <text x="8" y="15" fill="#34d399" font-size="10" font-family="monospace">CUM BID DEPTH ($${Math.round(bids[bids.length-1].cum_usd).toLocaleString()})</text>
+      <text x="${W - 8}" y="15" text-anchor="end" fill="#fb7185" font-size="10" font-family="monospace">CUM ASK DEPTH ($${Math.round(asks[asks.length-1].cum_usd).toLocaleString()})</text>
     </svg>
   `;
 }
@@ -545,6 +730,7 @@ async function loadOrderBook() {
       box.innerHTML = `<div style="color:var(--red)">${d.error}</div>`;
       return;
     }
+    lastOrderBookPacket = d;
     document.getElementById("clockUtc").textContent = new Date().toLocaleTimeString();
 
     if (d.asset_class === "CRYPTO") {
@@ -554,15 +740,15 @@ async function loadOrderBook() {
       const topBidWallPrices = new Set((d.liquidity_walls.largest_bid_support_walls || []).map(w => w.price));
       const topAskWallPrices = new Set((d.liquidity_walls.largest_ask_resistance_walls || []).map(w => w.price));
 
-      const asks15 = asks.slice(0, 15).reverse();
-      const bids15 = bids.slice(0, 15);
+      const asks12 = asks.slice(0, 12).reverse();
+      const bids12 = bids.slice(0, 12);
       const maxNotional = Math.max(
-        ...asks15.map(x => x.notional_usd),
-        ...bids15.map(x => x.notional_usd),
+        ...asks12.map(x => x.notional_usd),
+        ...bids12.map(x => x.notional_usd),
         1
       );
 
-      const askRows = asks15.map(a => {
+      const askRows = asks12.map(a => {
         const w = Math.min(100, (a.notional_usd / maxNotional) * 100);
         const wall = topAskWallPrices.has(a.price) ? `<span class="wall-tag">🐋 WALL</span>` : "";
         return `
@@ -574,7 +760,7 @@ async function loadOrderBook() {
           </div>`;
       }).join("");
 
-      const bidRows = bids15.map(b => {
+      const bidRows = bids12.map(b => {
         const w = Math.min(100, (b.notional_usd / maxNotional) * 100);
         const wall = topBidWallPrices.has(b.price) ? `<span class="wall-tag">🐋 WALL</span>` : "";
         return `
@@ -666,25 +852,48 @@ async function loadOrderBook() {
         <div class="pro-callout">
           💎 <strong>${lang === "ja" ? "米国株・ETF 60段リアルタイム板 (NASDAQ TotalView)" : "60-Level Live NASDAQ TotalView L2"}</strong>:
           ${lang === "ja"
-            ? `ローカル OpenD (:11111) 状態 = <code>${d.nasdaq_totalview_60level_l2_bridge.local_moomoo_opend_port_11111}</code>。見せ板（スプーフィング）急キャンセル＆アイスバーグ検知は <a href="https://github.com/sponsors/ramuza0113-sketch" target="_blank" style="color:#f472b6;font-weight:700;">GitHub Sponsors Pro版</a> で解放できます。`
+            ? `ローカル OpenD (:11111) = <code>${d.nasdaq_totalview_60level_l2_bridge.local_moomoo_opend_port_11111}</code>。見せ板（スプーフィング）急キャンセル＆アイスバーグ検知は <a href="https://github.com/sponsors/ramuza0113-sketch" target="_blank" style="color:#f472b6;font-weight:700;">GitHub Sponsors Pro版</a> で解放できます。`
             : `Local OpenD (:11111) = <code>${d.nasdaq_totalview_60level_l2_bridge.local_moomoo_opend_port_11111}</code>. Unlock live 60-depth L2 Spoofing & Iceberg detection via <a href="https://github.com/sponsors/ramuza0113-sketch" target="_blank" style="color:#f472b6;font-weight:700;">GitHub Sponsors Pro</a>.`}
         </div>
       `;
+      redrawPriceLines();
     }
   } catch (e) {
     box.innerHTML = `<div style="color:var(--red)">OrderBook error: ${e}</div>`;
   }
 }
 
-async function loadRiskPacket() {
+async function loadRiskAndChartPacket(fitContent = false) {
   const box = document.getElementById("riskContainer");
   try {
-    const r = await fetch(`/api/candle?symbol=${encodeURIComponent(currentSym)}&timeframe=${encodeURIComponent(currentTf)}`);
+    initTvChart();
+    const r = await fetch(`/api/candle?symbol=${encodeURIComponent(currentSym)}&timeframe=${encodeURIComponent(currentTf)}&bars=1`);
     const d = await r.json();
     if (d.error) {
       box.innerHTML = `<div style="color:var(--red)">${d.error}</div>`;
       return;
     }
+    lastCandlePacket = d;
+
+    // Render Candlestick Chart + Volume + EMA(20/50/200) + Risk Lines
+    if (candleSeries && d.chart_bars && d.chart_bars.length) {
+      candleSeries.setData(d.chart_bars.map(b => ({
+        time: b.time, open: b.open, high: b.high, low: b.low, close: b.close
+      })));
+      volSeries.setData(d.chart_bars.map(b => ({
+        time: b.time,
+        value: b.volume,
+        color: b.close >= b.open ? "rgba(16,185,129,0.32)" : "rgba(244,63,94,0.32)"
+      })));
+      ema20Series.setData(d.chart_bars.map(b => ({ time: b.time, value: b.ema20 })));
+      ema50Series.setData(d.chart_bars.map(b => ({ time: b.time, value: b.ema50 })));
+      ema200Series.setData(d.chart_bars.map(b => ({ time: b.time, value: b.ema200 })));
+      redrawPriceLines();
+      if (fitContent && tvChart) {
+        tvChart.timeScale().fitContent();
+      }
+    }
+
     const tm = d.trend_and_momentum;
     const rm = d.deterministic_risk_map;
     const fuel = tm.intraday_adr_fuel_remaining_pct;
@@ -765,7 +974,7 @@ async function loadRiskPacket() {
 
 function refreshMainPanels() {
   loadOrderBook();
-  loadRiskPacket();
+  loadRiskAndChartPacket(true);
 }
 
 function resetTimer() {
@@ -794,7 +1003,6 @@ resetTimer();
 
 class _TerminalRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
-        # Silence HTTP access logs so MCP stdio stream is never touched
         return
 
     def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
@@ -830,8 +1038,15 @@ class _TerminalRequestHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/candle":
             sym = qs.get("symbol", ["BTC-USD"])[0]
             tf = qs.get("timeframe", ["1h"])[0]
+            want_bars = qs.get("bars", ["0"])[0] == "1"
             try:
-                self._send_json(build_live_quant_candle_packet(symbol=sym, timeframe=tf))
+                self._send_json(
+                    build_live_quant_candle_packet(
+                        symbol=sym,
+                        timeframe=tf,
+                        include_chart_bars=want_bars,
+                    )
+                )
             except Exception as exc:
                 self._send_json({"error": str(exc), "symbol": sym}, status=200)
             return
@@ -905,10 +1120,10 @@ def launch_live_terminal(
         "timeframe": timeframe,
         "watchlist": watchlist,
         "features": [
+            "Interactive TradingView Candlestick Chart + Volume + EMA(20/50/200) + Automatic 1.5R/3.0R/Stop-Loss Lines",
             "Real-time auto-refreshing 60-Level L2 Order Book DOM Ladder + Cumulative Depth Chart",
             "Multi-Asset Liquidity & OFI Anomaly Ranking (click any symbol to inspect)",
             "Closed-Bar Trend Stack, Intraday ADR15 Fuel Tank Gauge & 1.5R / 3.0R Risk Blueprints",
-            "1-Click English / Japanese toggle",
         ],
         "pro_sponsor_url": SPONSOR_URL,
     }
@@ -917,8 +1132,8 @@ def launch_live_terminal(
 def run_standalone_dashboard_blocking(symbol: str = "BTC-USD") -> None:
     """Run dashboard in foreground when invoked via `lumina-orderbook-mcp --dashboard`."""
     info = launch_live_terminal(symbol=symbol, open_browser=True)
-    print(f"Lumina Live Quant Terminal running at: {info['terminal_url']}")
-    print("Press Ctrl+C to stop.")
+    print(f"Lumina Live Quant Terminal running at: {info['terminal_url']}", flush=True)
+    print("Press Ctrl+C to stop.", flush=True)
     try:
         while True:
             time.sleep(1.0)
