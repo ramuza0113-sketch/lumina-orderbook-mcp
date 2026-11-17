@@ -4,6 +4,7 @@
 
 **Give Claude Code, Cursor, and AI Agents Real-Time 60-Level L2 Order Books, Liquidity Walls, Schmitt-Trigger Factor Ontology & Zero-Repaint ATR Risk Maps — With Zero API Keys.**
 
+[![CI](https://github.com/ramuza0113-sketch/lumina-orderbook-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/ramuza0113-sketch/lumina-orderbook-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-v1%20%26%20v2%20Compatible-7C3AED.svg)](https://modelcontextprotocol.io)
