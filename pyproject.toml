@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumina-orderbook-mcp"
+version = "0.1.0"
+description = "Zero-API-key Model Context Protocol (MCP) server for real-time 60-level L2 Order Book Imbalance (OFI), Liquidity Walls, Closed-Bar Quantitative Candles, Schmitt-Trigger Factor Ontology, and Deterministic ATR Risk Maps for Claude Code, Cursor, and AI Trading Agents."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Katsutoshi Hashimoto" }
+]
+keywords = [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "orderbook",
+    "market-microstructure",
+    "order-flow-imbalance",
+    "quantitative-finance",
+    "algotrading",
+    "claude-code",
+    "cursor",
+    "trading",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mcp>=1.2.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+]
+
+[project.scripts]
+lumina-orderbook-mcp = "lumina_orderbook_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/ramuza0113-sketch/lumina-orderbook-mcp"
+Repository = "https://github.com/ramuza0113-sketch/lumina-orderbook-mcp"
+Sponsor = "https://github.com/sponsors/ramuza0113-sketch"
+ResearchFramework = "https://github.com/ramuza0113-sketch/lumina-ai-hedge-fund"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lumina_orderbook_mcp*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
