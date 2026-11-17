@@ -36,9 +36,10 @@ _ACTIVE_SERVER: ThreadingHTTPServer | None = None
 
 
 DASHBOARD_HTML = r"""<!DOCTYPE html>
-<html lang="en">
+<html lang="ja" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8" />
+<meta name="google" content="notranslate" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lumina OrderBook, Chart & Quant Risk Terminal</title>
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
@@ -433,7 +434,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 const params = new URLSearchParams(window.location.search);
 let currentSym = (params.get("symbol") || "BTC-USD").toUpperCase();
 let currentTf = params.get("timeframe") || "1h";
-let lang = (navigator.language || "").startsWith("ja") ? "ja" : "en";
+let lang = params.get("lang") || ((navigator.language || "").startsWith("ja") ? "ja" : "en");
 let timerId = null;
 let overlayMode = "AUTO"; // AUTO | LONG | SHORT | OFF
 let lastCandlePacket = null;

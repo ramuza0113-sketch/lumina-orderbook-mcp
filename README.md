@@ -15,6 +15,15 @@
 
 [⚡ 30-Second AI Copy-Paste Install](#-30-second-setup-just-paste-1-sentence-into-your-ai) • [🛠️ MCP Tools](#️-included-mcp-tools) • [📦 Sample Output](#-real-deterministic-json-output) • [💎 Pro Edition (NASDAQ TotalView 60-Depth)](#-community-free-vs-sponsor-pro-edition) • [🇯🇵 日本語ガイド](#-日本語クイックガイド-japanese)
 
+<br><br>
+
+<p align="center">
+  <img src="docs/assets/terminal_preview.png" width="100%" alt="Lumina OrderBook, Candlestick Chart & Quant Risk Terminal" style="border-radius: 8px;" />
+</p>
+<p align="center">
+  <em>📊 Built-in Live Terminal (<code>lumina-orderbook-mcp --dashboard</code> or ask Claude/Cursor to open it): Multi-Asset OFI Radar + Interactive Candlestick Chart with Automatic 1.5R/3.0R/SL Lines + Live 60-Level L2 Order Book & Depth Curve</em>
+</p>
+
 </div>
 
 ---
