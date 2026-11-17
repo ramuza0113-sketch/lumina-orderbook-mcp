@@ -38,7 +38,7 @@ When people ask an LLM *"Is NVDA or BTC a good entry right now?"*, standard chat
 **No manual JSON editing needed.** Copy and paste this single sentence into **Claude Code**, **Cursor**, **Windsurf**, or **Antigravity**:
 
 ```text
-Please install and configure the MCP server from https://github.com/ramuza0113-sketch/lumina-orderbook-mcp so you can query live L2 order books, OFI liquidity walls, and deterministic ATR risk maps.
+Please install and configure the MCP server from https://github.com/ramuza0113-sketch/lumina-orderbook-mcp (use `uvx` if available, otherwise `pip install git+https://github.com/ramuza0113-sketch/lumina-orderbook-mcp.git` and run via `python -m lumina_orderbook_mcp.server`) so you can query live L2 order books, OFI liquidity walls, and deterministic ATR risk maps.
 ```
 
 ### Or Configure Directly via CLI / JSON
@@ -155,7 +155,7 @@ Then set `"command": "lumina-orderbook-mcp"` and `"args": []` in your MCP client
 難しい設定ファイルの編集は不要です。普段使っている Claude Code や Cursor のチャット欄に、以下の1文をそのまま貼り付けて送信してください：
 
 ```text
-https://github.com/ramuza0113-sketch/lumina-orderbook-mcp のMCPサーバーをインストールして設定に追加して。リアルタイムの板情報（OFI）とATRリスク計算を使えるようにして。
+https://github.com/ramuza0113-sketch/lumina-orderbook-mcp のMCPサーバーをインストールして設定に追加して（uvxがなければ pip install git+https://github.com/ramuza0113-sketch/lumina-orderbook-mcp.git して python -m lumina_orderbook_mcp.server で登録して）。リアルタイムの板情報（OFI）とATRリスク計算を使えるようにして。
 ```
 
 ### 導入後にそのまま聞ける質問例
